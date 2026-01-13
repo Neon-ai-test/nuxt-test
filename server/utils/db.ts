@@ -12,11 +12,20 @@ const initScript = `
     title TEXT NOT NULL,
     content TEXT NOT NULL,
     level TEXT DEFAULT 'info',
+    image_path TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 `;
 
 db.exec(initScript);
+
+// 尝试添加 image_path 列，以防它是旧表
+try {
+  db.exec("ALTER TABLE logs ADD COLUMN image_path TEXT");
+} catch (error) {
+  // 如果列已存在，会报错，忽略即可
+  // console.log('Column image_path already exists or could not be added:', error.message);
+}
 
 // 3. 导出数据库实例供 API 使用
 export const useDb = () => {

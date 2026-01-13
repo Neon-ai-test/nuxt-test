@@ -7,16 +7,49 @@ const newLog = ref({
   level: 'info'
 });
 
+const selectedFile = ref<File | null>(null);
+const previewUrl = ref<string | null>(null);
 const isSubmitting = ref(false);
+
+const handleFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    selectedFile.value = file;
+    // 创建预览
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewUrl.value = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const clearFile = () => {
+  selectedFile.value = null;
+  previewUrl.value = null;
+  // 重置 input
+  const input = document.getElementById('file-input') as HTMLInputElement;
+  if (input) input.value = '';
+};
 
 const addLog = async () => {
   if (!newLog.value.title.trim() || !newLog.value.content.trim()) return;
   
   isSubmitting.value = true;
   try {
+    const formData = new FormData();
+    formData.append('title', newLog.value.title);
+    formData.append('content', newLog.value.content);
+    formData.append('level', newLog.value.level);
+    
+    if (selectedFile.value) {
+      formData.append('image', selectedFile.value);
+    }
+
     const response = await $fetch('/api/logs', {
       method: 'POST',
-      body: newLog.value
+      body: formData
     });
 
     if (response.success) {
@@ -27,6 +60,7 @@ const addLog = async () => {
         content: '',
         level: 'info'
       };
+      clearFile();
     }
   } catch (error) {
     console.error('Failed to add log:', error);
@@ -40,7 +74,7 @@ const addLog = async () => {
 <template>
   <div class="container">
     <header>
-      <h1>� 快速记录</h1>
+      <h1>📝 快速记录</h1>
       <p class="subtitle">记录当下的想法</p>
     </header>
 
@@ -75,6 +109,25 @@ const addLog = async () => {
             ></textarea>
           </div>
 
+          <!-- 图片上传部分 -->
+          <div class="form-group file-upload-group">
+            <label for="file-input" class="file-label">
+              📷 添加图片
+            </label>
+            <input 
+              id="file-input"
+              type="file" 
+              accept="image/*"
+              @change="handleFileChange"
+              class="file-input"
+            />
+            
+            <div v-if="previewUrl" class="image-preview">
+              <img :src="previewUrl" alt="Preview" />
+              <button type="button" @click="clearFile" class="remove-image-btn">×</button>
+            </div>
+          </div>
+
           <div class="actions">
             <button 
               type="submit" 
@@ -98,9 +151,7 @@ const addLog = async () => {
 .container {
   max-width: 600px;
   margin: 0 auto;
-  padding: 2rem;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #333;
+  padding: 2rem 1rem;
 }
 
 header {
@@ -109,81 +160,143 @@ header {
 }
 
 h1 {
-  margin: 0;
+  font-size: 2rem;
   color: #2c3e50;
+  margin-bottom: 0.5rem;
 }
 
 .subtitle {
   color: #666;
-  margin-top: 0.5rem;
+  font-size: 1.1rem;
 }
 
 .log-form {
-  background: #fff;
+  background: white;
   padding: 2rem;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  border: 1px solid #eee;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-input,
 .form-select,
 .form-textarea {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 1rem;
   transition: border-color 0.2s;
-  box-sizing: border-box; /* 确保 padding 不会撑大宽度 */
 }
 
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #42b883;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
 }
 
 .submit-btn {
-  padding: 10px 24px;
-  background-color: #42b883;
+  background-color: #3b82f6;
   color: white;
+  padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .submit-btn:hover:not(:disabled) {
-  background-color: #3aa876;
+  background-color: #2563eb;
 }
 
 .submit-btn:disabled {
-  background-color: #a8dcc5;
+  background-color: #94a3b8;
   cursor: not-allowed;
 }
 
 .manage-link {
-  color: #666;
+  color: #64748b;
   text-decoration: none;
-  font-size: 14px;
-  transition: color 0.2s;
+  font-size: 0.9rem;
 }
 
 .manage-link:hover {
-  color: #42b883;
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+/* 图片上传样式 */
+.file-upload-group {
+  border: 2px dashed #e2e8f0;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.file-input {
+  display: none;
+}
+
+.file-label {
+  cursor: pointer;
+  color: #64748b;
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.file-label:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.image-preview {
+  margin-top: 1rem;
+  position: relative;
+  display: inline-block;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.remove-image-btn:hover {
+  background: #dc2626;
 }
 </style>
