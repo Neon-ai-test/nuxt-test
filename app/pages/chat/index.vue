@@ -57,7 +57,7 @@
     <!-- 消息列表 -->
     <div 
       ref="messagesContainer"
-      class="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50 scroll-smooth"
+      class="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50"
     >
       <!-- 系统消息 -->
       <div v-if="messages.length === 0" class="flex flex-col items-center justify-center h-full text-slate-400">
@@ -71,12 +71,14 @@
       <div 
         v-for="message in messages" 
         :key="message.id"
+        :id="'msg-' + message.id"
         :class="['flex items-end gap-2 group', message.userId === userInfo.userId ? 'flex-row-reverse' : 'flex-row']"
       >
         <!-- 头像 -->
         <div 
-          class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white shadow-sm"
+          class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white shadow-sm cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-indigo-300 transition-all"
           :class="message.userId === userInfo.userId ? 'bg-indigo-500' : 'bg-slate-400'"
+          @click="handleMention(message)"
         >
           {{ (message.nickname || message.userId)[0]?.toUpperCase() }}
         </div>
@@ -86,14 +88,20 @@
             'max-w-[70%] p-3 shadow-sm transition-all duration-200 hover:shadow-md relative',
             message.userId === userInfo.userId 
               ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl rounded-tr-none' 
-              : 'bg-white text-slate-700 border border-slate-100 rounded-2xl rounded-tl-none'
+              : isMentioned(message)
+                ? 'bg-yellow-50 text-slate-800 border border-yellow-300 ring-2 ring-yellow-200/50 rounded-2xl rounded-tl-none'
+                : 'bg-white text-slate-700 border border-slate-100 rounded-2xl rounded-tl-none'
           ]"
         >
           <div 
             v-if="message.userId !== userInfo.userId"
-            class="font-medium mb-1 text-xs opacity-60 text-slate-500 pl-1"
+            class="font-medium mb-1 text-xs opacity-60 pl-1 flex items-center gap-1 cursor-pointer hover:opacity-100 transition-opacity"
+            :class="isMentioned(message) ? 'text-yellow-600' : 'text-slate-500'"
+            @click="handleMention(message)"
+            title="点击@Ta"
           >
-            {{ message.nickname || message.userId }}
+            <span>{{ message.nickname || message.userId }}</span>
+            <span v-if="isMentioned(message)" class="bg-yellow-200 text-yellow-700 text-[10px] px-1.5 rounded-full font-bold">@我</span>
           </div>
           <div class="text-sm leading-relaxed break-words">
             <template v-if="message.messageType === 'image'">
@@ -164,6 +172,39 @@
       </div>
     </div>
 
+    <!-- @提醒通知 -->
+    <div 
+      v-if="unreadMentions.length > 0"
+      class="fixed bottom-24 right-4 z-30 flex flex-col gap-2 items-end"
+    >
+      <div 
+        v-for="mention in unreadMentions"
+        :key="mention.id"
+        @click="scrollToMention(mention)"
+        class="bg-white/90 backdrop-blur border border-yellow-300 shadow-lg rounded-xl p-3 cursor-pointer hover:bg-yellow-50 transition-all transform hover:-translate-y-1 flex items-center gap-3 animate-bounce-short max-w-xs"
+      >
+        <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 font-bold text-xs shrink-0">
+          @
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-slate-800 truncate">
+            {{ mention.nickname || mention.userId }} @了你
+          </p>
+          <p class="text-xs text-slate-500 truncate max-w-[150px]">
+            {{ mention.content }}
+          </p>
+        </div>
+        <button 
+          @click.stop="unreadMentions = unreadMentions.filter(m => m.id !== mention.id)"
+          class="text-slate-400 hover:text-slate-600 p-1"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
     <!-- 消息输入 -->
     <div class="flex-none p-4 bg-white border-t border-slate-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] z-20">
       <div class="container mx-auto max-w-4xl">
@@ -187,6 +228,7 @@
           >
           
           <input 
+            ref="msgInputRef"
             v-model="messageInput"
             @keyup.enter="sendMessage"
             type="text"
@@ -274,6 +316,41 @@ const previewType = ref('');
 const fileInput = ref(null);
 const isMuted = ref(false);
 const audio = ref(null);
+const msgInputRef = ref(null);
+const unreadMentions = ref([]);
+
+// 滚动到指定消息
+const scrollToMention = (message) => {
+  const el = document.getElementById(`msg-${message.id}`);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // 移除未读提醒
+    unreadMentions.value = unreadMentions.value.filter(m => m.id !== message.id);
+  }
+};
+
+// 判断是否被@
+const isMentioned = (message) => {
+  if (!message.content || typeof message.content !== 'string') return false;
+  if (message.userId === userInfo.value.userId) return false;
+  
+  const mentionTag = `@${userInfo.value.nickname}`;
+  return message.content.includes(mentionTag);
+};
+
+// 处理@点击
+const handleMention = (message) => {
+  if (message.userId === userInfo.value.userId) return;
+  
+  const name = message.nickname || message.userId;
+  const mentionText = `@${name} `;
+  
+  messageInput.value += mentionText;
+  
+  nextTick(() => {
+    msgInputRef.value?.focus();
+  });
+};
 
 // 解析文件数据
 const getFileData = (content) => {
@@ -412,8 +489,8 @@ const loadHistoryMessages = async () => {
     if (result.success) {
       if (messages && typeof messages === 'object' && 'value' in messages) {
          messages.value = result.data;
-         await nextTick();
-         scrollToBottom();
+        await nextTick();
+        scrollToBottom(false);
       } else {
          console.error('CRITICAL: messages ref is broken', messages);
       }
@@ -436,9 +513,16 @@ const sendMessage = () => {
 };
 
 // 滚动到底部
-const scrollToBottom = () => {
+const scrollToBottom = (smooth = false) => {
   if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    if (smooth) {
+      messagesContainer.value.scrollTo({
+        top: messagesContainer.value.scrollHeight,
+        behavior: 'smooth'
+      });
+    } else {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    }
   }
 };
 
@@ -482,10 +566,15 @@ const connectWebSocket = () => {
     // 如果不是自己发的消息，播放提示音
     if (message.userId !== userInfo.value.userId) {
       playNotificationSound();
+      
+      // 如果被@，添加未读提醒
+      if (isMentioned(message)) {
+        unreadMentions.value.push(message);
+      }
     }
     
     await nextTick();
-    scrollToBottom();
+    scrollToBottom(true);
   });
 
   socket.value.on('user_joined', () => {
