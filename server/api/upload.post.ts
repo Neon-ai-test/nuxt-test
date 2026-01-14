@@ -17,8 +17,6 @@ export default defineEventHandler(async (event) => {
       messageType = 'image';
     } else if (mimeType.startsWith('video/')) {
       messageType = 'video';
-    } else {
-      throw createError({ statusCode: 400, message: 'Only images and videos are allowed' });
     }
 
     // Generate safe filename
@@ -38,7 +36,8 @@ export default defineEventHandler(async (event) => {
       data: {
         url: `/uploads/${filename}`,
         type: messageType,
-        filename: originalName
+        filename: originalName,
+        size: file.data.length
       }
     };
   } catch (error: any) {

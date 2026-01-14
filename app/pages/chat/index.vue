@@ -119,6 +119,34 @@
                 </div>
               </div>
             </template>
+            <template v-else-if="message.messageType === 'file'">
+              <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 min-w-[200px]">
+                <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                    <path fill-rule="evenodd" d="M5.625 1.5H9a3.75 3.75 0 013.75 3.75v1.875c0 1.036.84 1.875 1.875 1.875H16.5a3.75 3.75 0 013.75 3.75v7.875c0 1.035-.84 1.875-1.875 1.875H5.625a1.875 1.875 0 01-1.875-1.875V3.375c0-1.036.84-1.875 1.875-1.875zM12.75 1.5v3c0 1.036.84 1.875 1.875 1.875h3l-4.875-4.875z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-slate-700 truncate">
+                    {{ getFileData(message.content).name }}
+                  </p>
+                  <p class="text-xs text-slate-400">
+                    {{ formatFileSize(getFileData(message.content).size) }}
+                  </p>
+                </div>
+                <a 
+                  :href="getFileData(message.content).url" 
+                  download
+                  target="_blank"
+                  class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                  title="下载文件"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                    <path fill-rule="evenodd" d="M12 2.25a.75.75 0 01.75.75v11.69l3.22-3.22a.75.75 0 111.06 1.06l-4.5 4.5a.75.75 0 01-1.06 0l-4.5-4.5a.75.75 0 111.06-1.06l3.22 3.22V3a.75.75 0 01.75-.75zm-9 13.5a.75.75 0 01.75.75v2.25a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5V16.5a.75.75 0 011.5 0v2.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V16.5a.75.75 0 01.75-.75z" clip-rule="evenodd" />
+                  </svg>
+                </a>
+              </div>
+            </template>
             <template v-else>
               {{ message.content }}
             </template>
@@ -144,7 +172,7 @@
             @click="$refs.fileInput.click()"
             :disabled="isUploading"
             class="p-3 text-slate-400 hover:text-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="发送图片/视频"
+            title="发送文件"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
               <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clip-rule="evenodd" />
@@ -153,7 +181,6 @@
           <input 
             ref="fileInput"
             type="file" 
-            accept="image/*,video/*" 
             class="hidden"
             @change="handleFileUpload"
           >
@@ -247,6 +274,24 @@ const fileInput = ref(null);
 const isMuted = ref(false);
 const audio = ref(null);
 
+// 解析文件数据
+const getFileData = (content) => {
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    return { url: content, name: '未知文件', size: 0 };
+  }
+};
+
+// 格式化文件大小
+const formatFileSize = (bytes) => {
+  if (!bytes) return '';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
 // 用户信息
 const userInfo = ref({
   userId: '',
@@ -297,10 +342,21 @@ const handleFileUpload = async (event) => {
 
     const result = await response.json();
     if (result.success) {
+      let content = result.data.url;
+      
+      // 如果是普通文件，将元数据打包到 content 中
+      if (result.data.type === 'file') {
+        content = JSON.stringify({
+          url: result.data.url,
+          name: result.data.filename,
+          size: result.data.size
+        });
+      }
+
       // 发送消息
       socket.value.emit('send_message', {
         roomId,
-        content: result.data.url,
+        content: content,
         messageType: result.data.type
       });
     }
