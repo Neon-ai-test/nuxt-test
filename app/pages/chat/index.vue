@@ -175,13 +175,13 @@
     <!-- @提醒通知 -->
     <div 
       v-if="unreadMentions.length > 0"
-      class="fixed bottom-24 right-4 z-30 flex flex-col gap-2 items-end"
+      class="fixed bottom-28 right-4 z-50 flex flex-col gap-2 items-end pointer-events-none"
     >
       <div 
         v-for="mention in unreadMentions"
         :key="mention.id"
         @click="scrollToMention(mention)"
-        class="bg-white/90 backdrop-blur border border-yellow-300 shadow-lg rounded-xl p-3 cursor-pointer hover:bg-yellow-50 transition-all transform hover:-translate-y-1 flex items-center gap-3 animate-bounce-short max-w-xs"
+        class="bg-white/95 backdrop-blur border border-yellow-300 shadow-xl rounded-xl p-3 cursor-pointer hover:bg-yellow-50 transition-all transform hover:-translate-y-1 flex items-center gap-3 max-w-xs pointer-events-auto"
       >
         <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 font-bold text-xs shrink-0">
           @
@@ -321,20 +321,27 @@ const unreadMentions = ref([]);
 
 // 滚动到指定消息
 const scrollToMention = (message) => {
-  const el = document.getElementById(`msg-${message.id}`);
+  const elementId = `msg-${message.id}`;
+  const el = document.getElementById(elementId);
+  
   if (el) {
+    console.log('滚动到消息:', elementId);
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     // 移除未读提醒
     unreadMentions.value = unreadMentions.value.filter(m => m.id !== message.id);
+  } else {
+    console.warn('未找到消息元素:', elementId);
   }
 };
 
 // 判断是否被@
 const isMentioned = (message) => {
   if (!message.content || typeof message.content !== 'string') return false;
+  if (!userInfo.value.nickname) return false; // 确保有昵称
   if (message.userId === userInfo.value.userId) return false;
   
   const mentionTag = `@${userInfo.value.nickname}`;
+  // 简单匹配，只要包含 @昵称 即可
   return message.content.includes(mentionTag);
 };
 
@@ -569,6 +576,7 @@ const connectWebSocket = () => {
       
       // 如果被@，添加未读提醒
       if (isMentioned(message)) {
+        console.log('收到@消息，添加到提醒列表:', message);
         unreadMentions.value.push(message);
       }
     }
