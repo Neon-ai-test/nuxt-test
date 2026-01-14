@@ -29,7 +29,22 @@
             </div>
           </div>
         </div>
-        <div class="text-right">
+        <div class="text-right flex items-center gap-3">
+          <!-- 静音按钮 -->
+          <button 
+            @click="toggleMute"
+            class="bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors relative group"
+            :title="isMuted ? '开启声音' : '静音'"
+          >
+            <svg v-if="!isMuted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 2.75 2.75 0 010-11.668.75.75 0 010-1.06z" />
+              <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM17.78 9.22a.75.75 0 10-1.06 1.06L18.44 12l-1.72 1.72a.75.75 0 101.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 101.06-1.06L20.56 12l1.72-1.72a.75.75 0 10-1.06-1.06l-1.72 1.72-1.72-1.72z" />
+            </svg>
+          </button>
+          
           <div class="flex items-center gap-3 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
             <div class="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center text-sm font-bold shadow-inner">
               {{ userInfo.nickname?.[0]?.toUpperCase() || 'U' }}
@@ -234,6 +249,8 @@ const isUploading = ref(false);
 const previewUrl = ref('');
 const previewType = ref('');
 const fileInput = ref(null);
+const isMuted = ref(false);
+const audio = ref(null);
 
 // 用户信息
 const userInfo = ref({
@@ -298,6 +315,22 @@ const handleFileUpload = async (event) => {
   } finally {
     isUploading.value = false;
   }
+};
+
+// 切换静音状态
+const toggleMute = () => {
+  isMuted.value = !isMuted.value;
+  localStorage.setItem('chat_muted', isMuted.value.toString());
+};
+
+// 播放提示音
+const playNotificationSound = () => {
+  if (isMuted.value || !audio.value) return;
+  
+  audio.value.currentTime = 0;
+  audio.value.play().catch(err => {
+    console.warn('播放提示音被拦截:', err);
+  });
 };
 
 // 返回首页
@@ -375,6 +408,12 @@ const connectWebSocket = () => {
 
   socket.value.on('new_message', async (message) => {
     messages.value.push(message);
+    
+    // 如果不是自己发的消息，播放提示音
+    if (message.userId !== userInfo.value.userId) {
+      playNotificationSound();
+    }
+    
     await nextTick();
     scrollToBottom();
   });
@@ -394,6 +433,15 @@ const connectWebSocket = () => {
 
 // 生命周期
 onMounted(() => {
+  // 初始化音频对象
+  audio.value = new Audio('/notification.wav');
+  
+  // 读取本地静音设置
+  const savedMuted = localStorage.getItem('chat_muted');
+  if (savedMuted !== null) {
+    isMuted.value = savedMuted === 'true';
+  }
+
   // 加载用户信息
   const savedUserInfo = localStorage.getItem('userInfo');
   if (savedUserInfo) {
