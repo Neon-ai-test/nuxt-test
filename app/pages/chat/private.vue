@@ -84,7 +84,34 @@
           >
             {{ message.nickname || message.userId }}
           </div>
-          <div class="text-sm leading-relaxed break-words">{{ message.content }}</div>
+          <div class="text-sm leading-relaxed break-words">
+            <template v-if="message.messageType === 'image'">
+              <img 
+                :src="message.content" 
+                class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity max-h-[300px] object-cover"
+                @click="openPreview(message.content, 'image')"
+                loading="lazy"
+              >
+            </template>
+            <template v-else-if="message.messageType === 'video'">
+              <div class="relative group cursor-pointer" @click="openPreview(message.content, 'video')">
+                <video 
+                  :src="message.content" 
+                  class="max-w-full rounded-lg max-h-[300px] object-cover"
+                ></video>
+                <div class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors rounded-lg">
+                  <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-indigo-600 ml-1">
+                      <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              {{ message.content }}
+            </template>
+          </div>
           <div 
             :class="[
               'text-[10px] mt-1 text-right',
@@ -101,6 +128,25 @@
     <div class="flex-none p-4 bg-white border-t border-slate-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] z-20">
       <div class="container mx-auto max-w-4xl">
         <div class="flex items-end gap-2 bg-slate-50 rounded-2xl p-2 border border-slate-200 focus-within:ring-2 focus-within:ring-purple-100 focus-within:border-purple-400 transition-all duration-200">
+          <!-- 文件上传按钮 -->
+          <button 
+            @click="$refs.fileInput.click()"
+            :disabled="isUploading"
+            class="p-3 text-slate-400 hover:text-purple-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="发送图片/视频"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+              <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          <input 
+            ref="fileInput"
+            type="file" 
+            accept="image/*,video/*" 
+            class="hidden"
+            @change="handleFileUpload"
+          >
+          
           <input 
             v-model="messageInput"
             @keyup.enter="sendMessage"
@@ -110,13 +156,59 @@
           >
           <button 
             @click="sendMessage"
-            :disabled="!messageInput.trim()"
+            :disabled="!messageInput.trim() && !isUploading"
             class="flex-shrink-0 bg-gradient-to-r from-purple-500 to-pink-600 text-white p-3 rounded-xl hover:shadow-lg hover:from-purple-600 hover:to-pink-700 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center aspect-square"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+            <svg v-if="!isUploading" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
               <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
             </svg>
+            <svg v-else class="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 媒体预览 Modal -->
+    <div v-if="previewUrl" class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm" @click="closePreview">
+      <div class="relative max-w-full max-h-full flex flex-col items-center" @click.stop>
+        <button 
+          @click="closePreview"
+          class="absolute -top-12 right-0 text-white hover:text-slate-300 p-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <img 
+          v-if="previewType === 'image'" 
+          :src="previewUrl" 
+          class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+        >
+        <video 
+          v-else-if="previewType === 'video'" 
+          :src="previewUrl" 
+          controls 
+          autoplay
+          class="max-w-full max-h-[85vh] rounded-lg shadow-2xl"
+        ></video>
+        
+        <div class="mt-4 flex gap-4">
+          <a 
+            :href="previewUrl" 
+            download
+            target="_blank"
+            class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-2 rounded-full transition-colors backdrop-blur-md"
+            @click.stop
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M12 12.75l-3.25-3.25M12 12.75l3.25-3.25M12 12.75V3" />
+            </svg>
+            下载原文件
+          </a>
         </div>
       </div>
     </div>
@@ -138,6 +230,10 @@ const onlineCount = ref(0);
 const messagesContainer = ref(null);
 const roomId = ref('');
 const roomName = ref('私密聊天室');
+const isUploading = ref(false);
+const previewUrl = ref('');
+const previewType = ref('');
+const fileInput = ref(null);
 
 // 用户信息
 const userInfo = ref({
@@ -152,6 +248,56 @@ const formatTime = (time) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+// 预览媒体
+const openPreview = (url, type) => {
+  previewUrl.value = url;
+  previewType.value = type;
+};
+
+const closePreview = () => {
+  previewUrl.value = '';
+  previewType.value = '';
+};
+
+// 处理文件上传
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // 重置 input
+  event.target.value = '';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  isUploading.value = true;
+  try {
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+
+    const result = await response.json();
+    if (result.success) {
+      // 发送消息
+      socket.value.emit('send_message', {
+        roomId: roomId.value,
+        content: result.data.url,
+        messageType: result.data.type
+      });
+    }
+  } catch (error) {
+    console.error('上传失败:', error);
+    alert('上传失败，请重试');
+  } finally {
+    isUploading.value = false;
+  }
 };
 
 // 返回首页
