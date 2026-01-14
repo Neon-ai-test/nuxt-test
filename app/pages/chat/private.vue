@@ -103,16 +103,17 @@
             <template v-if="message.messageType === 'image'">
               <img 
                 :src="message.content" 
-                class="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity max-h-[300px] object-cover"
+                class="w-60 h-40 rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover bg-slate-100"
                 @click="openPreview(message.content, 'image')"
                 loading="lazy"
+                alt="图片"
               >
             </template>
             <template v-else-if="message.messageType === 'video'">
-              <div class="relative group cursor-pointer" @click="openPreview(message.content, 'video')">
+              <div class="relative group cursor-pointer w-60 h-40" @click="openPreview(message.content, 'video')">
                 <video 
                   :src="message.content" 
-                  class="max-w-full rounded-lg max-h-[300px] object-cover"
+                  class="w-full h-full rounded-lg object-cover bg-slate-100"
                 ></video>
                 <div class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors rounded-lg">
                   <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm">
@@ -123,7 +124,7 @@
                 </div>
               </div>
             </template>
-            <template v-else-if="message.messageType === 'file'">
+            <template v-else-if="message.messageType === 'file' || isFileJSON(message.content)">
               <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 min-w-[200px]">
                 <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
@@ -285,6 +286,16 @@ const getFileData = (content) => {
     return JSON.parse(content);
   } catch (e) {
     return { url: content, name: '未知文件', size: 0 };
+  }
+};
+
+// 判断内容是否为文件JSON格式
+const isFileJSON = (content) => {
+  try {
+    const data = JSON.parse(content);
+    return data && typeof data === 'object' && 'url' in data && 'name' in data;
+  } catch (e) {
+    return false;
   }
 };
 
@@ -490,7 +501,7 @@ const connectWebSocket = () => {
 // 生命周期
 onMounted(() => {
   // 初始化音频对象
-  audio.value = new Audio('/notification.wav');
+  audio.value = new Audio('/pikachu.mp3');
   
   // 读取本地静音设置
   const savedMuted = localStorage.getItem('chat_muted');
