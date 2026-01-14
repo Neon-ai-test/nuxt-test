@@ -42,3 +42,10 @@ logs.db-wal
 # OS generated files
 Thumbs.db
 .DS_Store
+
+# User uploads
+public/uploads/*
+!public/uploads/.gitkeep
+
+# IDE specific
+.trae

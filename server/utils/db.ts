@@ -1,33 +1,61 @@
 import Database from 'better-sqlite3';
+import { resolve } from 'path';
 
 // 1. 初始化数据库连接
-// 数据库文件将存储在项目根目录下，名为 'app.db'
-const db = new Database('app.db');
+// 数据库文件路径可以通过环境变量配置，默认为项目根目录下的 'app.db'
+const dbPath = process.env.DATABASE_PATH || resolve(process.cwd(), 'app.db');
+const db = new Database(dbPath);
+
+console.log(`Database connected at ${dbPath}`);
 
 // 2. 初始化表结构
 // 如果表不存在，则创建它
 const initScript = `
-  CREATE TABLE IF NOT EXISTS logs (
+  -- 用户表
+  CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    level TEXT DEFAULT 'info',
-    image_path TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    user_id TEXT UNIQUE NOT NULL,
+    nickname TEXT NOT NULL,
+    avatar TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+  
+  -- 聊天室表
+  CREATE TABLE IF NOT EXISTS rooms (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    room_id TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT DEFAULT 'public',
+    created_by TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  
+  -- 消息表
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    room_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    message_type TEXT DEFAULT 'text',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  
+  -- 创建索引
+  CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room_id);
+  CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
+  CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
+  
+  -- 创建默认公共聊天室
+  INSERT OR IGNORE INTO rooms (room_id, name, type)
+  VALUES ('public', '公共聊天室', 'public');
 `;
 
 db.exec(initScript);
-
-// 尝试添加 image_path 列，以防它是旧表
-try {
-  db.exec("ALTER TABLE logs ADD COLUMN image_path TEXT");
-} catch (error) {
-  // 如果列已存在，会报错，忽略即可
-  // console.log('Column image_path already exists or could not be added:', error.message);
-}
 
 // 3. 导出数据库实例供 API 使用
 export const useDb = () => {
   return db;
 };
+
+// 4. 导出数据库实例
+export default db;
