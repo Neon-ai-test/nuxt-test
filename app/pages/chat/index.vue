@@ -129,9 +129,10 @@
               </div>
             </template>
             <template v-else-if="message.messageType === 'audio'">
-              <div class="flex items-center gap-2 min-w-[200px]">
-                <audio controls :src="message.content" class="h-10 w-64 rounded-lg bg-slate-100"></audio>
-              </div>
+              <VoiceMessage 
+                :src="message.content" 
+                :is-self="message.userId === userInfo.userId"
+              />
             </template>
             <template v-else-if="message.messageType === 'file' || isFileJSON(message.content)">
               <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 min-w-[200px]">
@@ -333,6 +334,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { io, Socket } from 'socket.io-client';
+import VoiceMessage from '../../components/VoiceMessage.vue';
 
 const router = useRouter();
 const config = useRuntimeConfig();
