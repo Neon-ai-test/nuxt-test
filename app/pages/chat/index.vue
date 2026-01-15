@@ -128,6 +128,11 @@
                 </div>
               </div>
             </template>
+            <template v-else-if="message.messageType === 'audio'">
+              <div class="flex items-center gap-2 min-w-[200px]">
+                <audio controls :src="message.content" class="h-10 w-64 rounded-lg bg-slate-100"></audio>
+              </div>
+            </template>
             <template v-else-if="message.messageType === 'file' || isFileJSON(message.content)">
               <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 min-w-[200px]">
                 <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -209,38 +214,66 @@
     <div class="flex-none p-4 bg-white border-t border-slate-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] z-20">
       <div class="container mx-auto max-w-4xl">
         <div class="flex items-end gap-2 bg-slate-50 rounded-2xl p-2 border border-slate-200 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400 transition-all duration-200">
-          <!-- 文件上传按钮 -->
+          <template v-if="!isRecording">
+            <!-- 录音按钮 -->
+            <button 
+              @click="startRecording"
+              class="p-3 text-slate-400 hover:text-red-500 transition-colors duration-200"
+              title="发送语音"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
+                <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
+              </svg>
+            </button>
+
+            <!-- 文件上传按钮 -->
+            <button 
+              @click="$refs.fileInput.click()"
+              :disabled="isUploading"
+              class="p-3 text-slate-400 hover:text-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="发送文件"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <input 
+              ref="fileInput"
+              type="file" 
+              class="hidden"
+              @change="handleFileUpload"
+            >
+            
+            <input 
+              ref="msgInputRef"
+              v-model="messageInput"
+              @keyup.enter="sendMessage"
+              type="text"
+              placeholder="输入消息..."
+              class="flex-1 bg-transparent border-none px-4 py-3 focus:ring-0 text-slate-700 placeholder:text-slate-400 text-sm md:text-base"
+            >
+          </template>
+
+          <div v-else class="flex-1 flex items-center gap-4 px-2 py-3 min-w-0">
+             <div class="flex items-center gap-2 text-red-500 animate-pulse shrink-0">
+                <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                <span class="font-bold font-mono">{{ formatDuration(recordingTime) }}</span>
+             </div>
+             <span class="text-slate-400 text-sm truncate">正在录音...</span>
+             <div class="flex-1"></div>
+             <button @click="cancelRecording" class="px-4 py-1.5 rounded-full bg-slate-200 text-slate-600 text-sm hover:bg-slate-300 transition-colors shrink-0">取消</button>
+          </div>
+
           <button 
-            @click="$refs.fileInput.click()"
-            :disabled="isUploading"
-            class="p-3 text-slate-400 hover:text-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="发送文件"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-              <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clip-rule="evenodd" />
-            </svg>
-          </button>
-          <input 
-            ref="fileInput"
-            type="file" 
-            class="hidden"
-            @change="handleFileUpload"
-          >
-          
-          <input 
-            ref="msgInputRef"
-            v-model="messageInput"
-            @keyup.enter="sendMessage"
-            type="text"
-            placeholder="输入消息..."
-            class="flex-1 bg-transparent border-none px-4 py-3 focus:ring-0 text-slate-700 placeholder:text-slate-400 text-sm md:text-base"
-          >
-          <button 
-            @click="sendMessage"
-            :disabled="!messageInput.trim() && !isUploading"
+            @click="isRecording ? stopRecording() : sendMessage()"
+            :disabled="(!messageInput.trim() && !isUploading && !isRecording)"
             class="flex-shrink-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-3 rounded-xl hover:shadow-lg hover:from-blue-600 hover:to-indigo-700 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center aspect-square"
           >
-            <svg v-if="!isUploading" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+            <svg v-if="!isUploading && !isRecording" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+            </svg>
+            <svg v-else-if="isRecording" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
               <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
             </svg>
             <svg v-else class="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -318,6 +351,111 @@ const isMuted = ref(false);
 const audio = ref(null);
 const msgInputRef = ref(null);
 const unreadMentions = ref([]);
+
+// 录音相关状态
+const isRecording = ref(false);
+const recordingTime = ref(0);
+const mediaRecorder = ref(null);
+const audioChunks = ref([]);
+const recordingTimer = ref(null);
+
+// 开始录音
+const startRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder.value = new MediaRecorder(stream);
+    audioChunks.value = [];
+    
+    mediaRecorder.value.ondataavailable = (event) => {
+      audioChunks.value.push(event.data);
+    };
+    
+    mediaRecorder.value.onstop = () => {
+      // 停止所有轨道
+      stream.getTracks().forEach(track => track.stop());
+    };
+    
+    mediaRecorder.value.start();
+    isRecording.value = true;
+    recordingTime.value = 0;
+    
+    // 计时器
+    recordingTimer.value = setInterval(() => {
+      recordingTime.value++;
+    }, 1000);
+    
+  } catch (err) {
+    console.error('无法启动录音:', err);
+    alert('无法访问麦克风，请检查权限设置');
+  }
+};
+
+// 停止录音并发送
+const stopRecording = () => {
+  if (!mediaRecorder.value || !isRecording.value) return;
+  
+  mediaRecorder.value.onstop = async () => {
+    clearInterval(recordingTimer.value);
+    isRecording.value = false;
+    
+    const audioBlob = new Blob(audioChunks.value, { type: 'audio/webm' });
+    const file = new File([audioBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
+    
+    await uploadAndSendAudio(file);
+  };
+  
+  mediaRecorder.value.stop();
+};
+
+// 取消录音
+const cancelRecording = () => {
+  if (!mediaRecorder.value || !isRecording.value) return;
+  
+  mediaRecorder.value.onstop = () => {
+    clearInterval(recordingTimer.value);
+    isRecording.value = false;
+    audioChunks.value = []; // 清空数据
+  };
+  
+  mediaRecorder.value.stop();
+};
+
+// 上传并发送语音
+const uploadAndSendAudio = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  isUploading.value = true;
+  try {
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) throw new Error('Upload failed');
+    
+    const result = await response.json();
+    if (result.success) {
+      socket.value.emit('send_message', {
+        roomId,
+        content: result.data.url,
+        messageType: 'audio'
+      });
+    }
+  } catch (error) {
+    console.error('发送语音失败:', error);
+    alert('发送语音失败');
+  } finally {
+    isUploading.value = false;
+  }
+};
+
+// 格式化录音时间
+const formatDuration = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
 
 // 滚动到指定消息
 const scrollToMention = (message) => {

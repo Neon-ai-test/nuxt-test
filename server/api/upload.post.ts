@@ -17,6 +17,8 @@ export default defineEventHandler(async (event) => {
       messageType = 'image';
     } else if (mimeType.startsWith('video/')) {
       messageType = 'video';
+    } else if (mimeType.startsWith('audio/')) {
+      messageType = 'audio';
     }
 
     // Generate safe filename
