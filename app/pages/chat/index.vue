@@ -1,25 +1,28 @@
 <template>
-  <div class="h-screen bg-slate-50 flex flex-col overflow-hidden">
+  <div class="h-screen bg-[#F5F5F7] flex flex-col overflow-hidden font-sans">
     <!-- 头部 -->
-    <header class="flex-none bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg z-10">
-      <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+    <header class="flex-none bg-white/80 backdrop-blur-xl border-b border-gray-200/50 z-10 transition-all duration-300">
+      <div class="max-w-[1200px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
         <div class="flex items-center gap-4">
           <button 
             @click="goBack"
-            class="p-2 rounded-full hover:bg-white/10 transition-colors duration-200 group"
+            class="p-2 rounded-full text-[#1D1D1F] hover:bg-black/5 transition-colors duration-200 group"
             title="返回首页"
           >
-            <span class="inline-block transform group-hover:-translate-x-1 transition-transform">←</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 group-hover:-translate-x-0.5 transition-transform">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
           </button>
           <div>
-            <h1 class="text-xl font-bold tracking-wide">公共聊天室</h1>
-            <div class="flex items-center gap-3 text-xs opacity-90">
-              <span class="flex items-center gap-1.5 bg-black/10 px-2 py-0.5 rounded-full">
-                <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                <span>在线: {{ onlineCount }}</span>
+            <h1 class="text-lg font-semibold tracking-tight text-[#1D1D1F]">公共广场</h1>
+            <div class="flex items-center gap-2 text-xs text-[#86868B]">
+              <span class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                <span>{{ onlineCount }} 人在线</span>
               </span>
+              <span class="w-0.5 h-3 bg-gray-300 rounded-full"></span>
               <span class="flex items-center gap-1">
-                <span :class="['w-1.5 h-1.5 rounded-full', socketConnected ? 'bg-green-400' : 'bg-red-400']"></span>
+                <span :class="['w-1.5 h-1.5 rounded-full', socketConnected ? 'bg-green-500' : 'bg-red-500']"></span>
                 {{ socketConnected ? '已连接' : '连接中...' }}
               </span>
             </div>
@@ -29,25 +32,25 @@
               <!-- 静音按钮 -->
               <button 
                 @click="toggleMute"
-                class="bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors relative group"
+                class="text-[#1D1D1F] hover:bg-black/5 p-2 rounded-full transition-colors relative group"
                 :title="isMuted ? '开启声音' : '静音'"
               >
                 <svg v-if="!isMuted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
                   <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 2.75 2.75 0 010-11.668.75.75 0 010-1.06z" />
                   <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
                 </svg>
-                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-400">
                   <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM17.78 9.22a.75.75 0 10-1.06 1.06L18.44 12l-1.72 1.72a.75.75 0 101.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 101.06-1.06L20.56 12l1.72-1.72a.75.75 0 10-1.06-1.06l-1.72 1.72-1.72-1.72z" />
                 </svg>
               </button>
 
-              <div class="flex items-center gap-3 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
-            <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm font-bold shadow-inner">
+              <div class="flex items-center gap-3 bg-black/5 px-3 py-1.5 rounded-full border border-black/5">
+            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-xs font-bold text-white shadow-sm">
               {{ userInfo.nickname?.[0]?.toUpperCase() || 'U' }}
             </div>
-            <div>
-              <p class="text-sm font-medium leading-none mb-1">{{ userInfo.nickname }}</p>
-              <p class="text-[10px] opacity-60 font-mono leading-none">{{ userInfo.userId.substring(0, 8) }}</p>
+            <div class="hidden sm:block">
+              <p class="text-xs font-semibold text-[#1D1D1F] leading-none mb-0.5">{{ userInfo.nickname }}</p>
+              <p class="text-[10px] text-[#86868B] font-mono leading-none">{{ userInfo.userId.substring(0, 8) }}</p>
             </div>
           </div>
         </div>
@@ -57,14 +60,15 @@
     <!-- 消息列表 -->
     <div 
       ref="messagesContainer"
-      class="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50"
+      class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6"
     >
       <!-- 系统消息 -->
-      <div v-if="messages.length === 0" class="flex flex-col items-center justify-center h-full text-slate-400">
-        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-3 text-2xl">
+      <div v-if="messages.length === 0" class="flex flex-col items-center justify-center h-full text-[#86868B] select-none">
+        <div class="w-24 h-24 bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-center mb-6 text-5xl border border-gray-100/50 animate-bounce-slow">
           👋
         </div>
-        <p>暂无消息，开始聊天吧！</p>
+        <h3 class="text-xl font-semibold text-[#1D1D1F] mb-2">欢迎来到公共广场</h3>
+        <p class="text-base opacity-60 max-w-xs text-center leading-relaxed">这里是大家畅所欲言的地方，<br>开始发送第一条消息吧</p>
       </div>
 
       <!-- 消息项 -->
@@ -72,56 +76,55 @@
         v-for="message in messages" 
         :key="message.id"
         :id="'msg-' + message.id"
-        :class="['flex items-end gap-2 group', message.userId === userInfo.userId ? 'flex-row-reverse' : 'flex-row']"
+        :class="['flex items-end gap-2 sm:gap-3 group max-w-3xl mx-auto w-full transition-all duration-300', message.userId === userInfo.userId ? 'flex-row-reverse' : 'flex-row']"
       >
         <!-- 头像 -->
         <div 
-          class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white shadow-sm cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-indigo-300 transition-all"
-          :class="message.userId === userInfo.userId ? 'bg-indigo-500' : 'bg-slate-400'"
+          class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-medium text-white shadow-sm cursor-pointer transition-transform hover:scale-105 select-none"
+          :class="message.userId === userInfo.userId ? 'bg-gradient-to-br from-[#0071e3] to-[#0077ED]' : 'bg-gradient-to-br from-gray-400 to-gray-500'"
           @click="handleMention(message)"
         >
           {{ (message.nickname || message.userId)[0]?.toUpperCase() }}
         </div>
 
-        <div 
-          :class="[
-            'max-w-[70%] p-3 shadow-sm transition-all duration-200 hover:shadow-md relative',
-            message.userId === userInfo.userId 
-              ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl rounded-tr-none' 
-              : isMentioned(message)
-                ? 'bg-yellow-50 text-slate-800 border border-yellow-300 ring-2 ring-yellow-200/50 rounded-2xl rounded-tl-none'
-                : 'bg-white text-slate-700 border border-slate-100 rounded-2xl rounded-tl-none'
-          ]"
-        >
+        <div class="flex flex-col max-w-[75%] sm:max-w-[70%]" :class="message.userId === userInfo.userId ? 'items-end' : 'items-start'">
           <div 
-            v-if="message.userId !== userInfo.userId"
-            class="font-medium mb-1 text-xs opacity-60 pl-1 flex items-center gap-1 cursor-pointer hover:opacity-100 transition-opacity"
-            :class="isMentioned(message) ? 'text-yellow-600' : 'text-slate-500'"
-            @click="handleMention(message)"
-            title="点击@Ta"
+            :class="[
+              'px-4 py-2.5 sm:px-5 sm:py-3 relative text-[16px] leading-relaxed break-words shadow-sm',
+              message.userId === userInfo.userId 
+                ? 'bg-[#0071e3] text-white rounded-[1.25rem] rounded-tr-sm' 
+                : isMentioned(message)
+                  ? 'bg-yellow-50 text-[#1D1D1F] border border-yellow-200/50 ring-1 ring-yellow-100 rounded-[1.25rem] rounded-tl-sm'
+                  : 'bg-white text-[#1D1D1F] rounded-[1.25rem] rounded-tl-sm'
+            ]"
           >
-            <span>{{ message.nickname || message.userId }}</span>
-            <span v-if="isMentioned(message)" class="bg-yellow-200 text-yellow-700 text-[10px] px-1.5 rounded-full font-bold">@我</span>
-          </div>
-          <div class="text-sm leading-relaxed break-words">
+            <div 
+              v-if="message.userId !== userInfo.userId"
+              class="font-medium mb-1 text-[11px] text-[#86868B]/80 flex items-center gap-1 cursor-pointer hover:text-[#1D1D1F] transition-colors select-none"
+              @click="handleMention(message)"
+            >
+              <span>{{ message.nickname || message.userId }}</span>
+              <span v-if="isMentioned(message)" class="bg-yellow-100 text-yellow-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">@我</span>
+            </div>
+
             <template v-if="message.messageType === 'image'">
               <img 
                 :src="message.content" 
-                class="w-60 h-40 rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover bg-slate-100"
+                class="max-w-full w-auto h-auto max-h-[300px] rounded-lg cursor-pointer hover:opacity-95 transition-opacity object-contain bg-black/5"
                 @click="openPreview(message.content, 'image')"
                 loading="lazy"
                 alt="图片"
               >
             </template>
             <template v-else-if="message.messageType === 'video'">
-              <div class="relative group cursor-pointer w-60 h-40" @click="openPreview(message.content, 'video')">
+              <div class="relative group cursor-pointer max-w-full" @click="openPreview(message.content, 'video')">
                 <video 
                   :src="message.content" 
-                  class="w-full h-full rounded-lg object-cover bg-slate-100"
+                  class="max-w-full max-h-[300px] rounded-lg object-contain bg-black"
                 ></video>
                 <div class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors rounded-lg">
                   <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-indigo-600 ml-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-[#0071e3] ml-1">
                       <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
                     </svg>
                   </div>
@@ -135,17 +138,17 @@
               />
             </template>
             <template v-else-if="message.messageType === 'file' || isFileJSON(message.content)">
-              <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 min-w-[200px]">
-                <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div class="flex items-center gap-3 p-1 min-w-[200px]">
+                <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 text-gray-500">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
                     <path fill-rule="evenodd" d="M5.625 1.5H9a3.75 3.75 0 013.75 3.75v1.875c0 1.036.84 1.875 1.875 1.875H16.5a3.75 3.75 0 013.75 3.75v7.875c0 1.035-.84 1.875-1.875 1.875H5.625a1.875 1.875 0 01-1.875-1.875V3.375c0-1.036.84-1.875 1.875-1.875zM12.75 1.5v3c0 1.036.84 1.875 1.875 1.875h3l-4.875-4.875z" clip-rule="evenodd" />
                   </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-slate-700 truncate">
+                  <p class="text-sm font-medium truncate" :class="message.userId === userInfo.userId ? 'text-white' : 'text-[#1D1D1F]'">
                     {{ getFileData(message.content).name }}
                   </p>
-                  <p class="text-xs text-slate-400">
+                  <p class="text-xs opacity-70">
                     {{ formatFileSize(getFileData(message.content).size) }}
                   </p>
                 </div>
@@ -153,7 +156,8 @@
                   :href="getFileData(message.content).url" 
                   download
                   target="_blank"
-                  class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                  class="p-2 transition-colors rounded-full"
+                  :class="message.userId === userInfo.userId ? 'text-white/80 hover:bg-white/20' : 'text-gray-400 hover:bg-gray-100 hover:text-[#0071e3]'"
                   title="下载文件"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
@@ -168,8 +172,8 @@
           </div>
           <div 
             :class="[
-              'text-[10px] mt-1 text-right',
-              message.userId === userInfo.userId ? 'text-blue-100/70' : 'text-slate-400'
+              'text-[10px] mt-1.5 mx-1 font-medium',
+              message.userId === userInfo.userId ? 'text-[#86868B]' : 'text-[#86868B]'
             ]"
           >
             {{ formatTime(message.createdAt) }}
@@ -187,22 +191,22 @@
         v-for="mention in unreadMentions"
         :key="mention.id"
         @click="scrollToMention(mention)"
-        class="bg-white/95 backdrop-blur border border-yellow-300 shadow-xl rounded-xl p-3 cursor-pointer hover:bg-yellow-50 transition-all transform hover:-translate-y-1 flex items-center gap-3 max-w-xs pointer-events-auto"
+        class="bg-white/80 backdrop-blur-xl border border-yellow-200 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] rounded-2xl p-4 cursor-pointer hover:bg-yellow-50/80 transition-all transform hover:-translate-y-1 flex items-center gap-3 max-w-xs pointer-events-auto"
       >
-        <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 font-bold text-xs shrink-0">
+        <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 font-bold text-sm shrink-0">
           @
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-slate-800 truncate">
-            {{ mention.nickname || mention.userId }} @了你
+          <p class="text-sm font-semibold text-[#1D1D1F] truncate">
+            {{ mention.nickname || mention.userId }}
           </p>
-          <p class="text-xs text-slate-500 truncate max-w-[150px]">
+          <p class="text-xs text-[#86868B] truncate max-w-[150px] mt-0.5">
             {{ mention.content }}
           </p>
         </div>
         <button 
           @click.stop="unreadMentions = unreadMentions.filter(m => m.id !== mention.id)"
-          class="text-slate-400 hover:text-slate-600 p-1"
+          class="text-[#86868B] hover:text-[#1D1D1F] p-1 rounded-full hover:bg-black/5"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
             <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -212,14 +216,14 @@
     </div>
 
     <!-- 消息输入 -->
-    <div class="flex-none p-4 bg-white border-t border-slate-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] z-20">
-      <div class="container mx-auto max-w-4xl">
-        <div class="flex items-end gap-2 bg-slate-50 rounded-2xl p-2 border border-slate-200 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400 transition-all duration-200">
+    <div class="flex-none p-4 bg-white/80 backdrop-blur-xl border-t border-gray-200/50 z-20">
+      <div class="max-w-[1200px] mx-auto">
+        <div class="flex items-end gap-2 bg-[#F5F5F7] rounded-[1.5rem] p-1.5 pr-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-[#0071e3]/20 focus-within:shadow-sm transition-all duration-300">
           <template v-if="!isRecording">
             <!-- 录音按钮 -->
             <button 
               @click="startRecording"
-              class="p-3 text-slate-400 hover:text-red-500 transition-colors duration-200"
+              class="p-3 text-[#86868B] hover:text-red-500 hover:bg-black/5 rounded-full transition-all duration-200"
               title="发送语音"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
@@ -232,7 +236,7 @@
             <button 
               @click="$refs.fileInput.click()"
               :disabled="isUploading"
-              class="p-3 text-slate-400 hover:text-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="p-3 text-[#86868B] hover:text-[#0071e3] hover:bg-black/5 rounded-full transition-all duration-200 disabled:opacity-50"
               title="发送文件"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
@@ -251,27 +255,27 @@
               v-model="messageInput"
               @keyup.enter="sendMessage"
               type="text"
-              placeholder="输入消息..."
-              class="flex-1 bg-transparent border-none px-4 py-3 focus:ring-0 text-slate-700 placeholder:text-slate-400 text-sm md:text-base"
+              placeholder="发消息..."
+              class="flex-1 bg-transparent border-none px-2 py-3 focus:ring-0 text-[#1D1D1F] placeholder:text-[#86868B] text-base"
             >
           </template>
 
-          <div v-else class="flex-1 flex items-center gap-4 px-2 py-3 min-w-0">
+          <div v-else class="flex-1 flex items-center gap-4 px-4 py-3 min-w-0">
              <div class="flex items-center gap-2 text-red-500 animate-pulse shrink-0">
-                <span class="w-3 h-3 bg-red-500 rounded-full"></span>
-                <span class="font-bold font-mono">{{ formatDuration(recordingTime) }}</span>
+                <span class="w-2.5 h-2.5 bg-red-500 rounded-full"></span>
+                <span class="font-bold font-mono text-sm">{{ formatDuration(recordingTime) }}</span>
              </div>
-             <span class="text-slate-400 text-sm truncate">正在录音...</span>
+             <span class="text-[#86868B] text-sm truncate">正在录音...</span>
              <div class="flex-1"></div>
-             <button @click="cancelRecording" class="px-4 py-1.5 rounded-full bg-slate-200 text-slate-600 text-sm hover:bg-slate-300 transition-colors shrink-0">取消</button>
+             <button @click="cancelRecording" class="px-4 py-1.5 rounded-full bg-gray-200 text-[#1D1D1F] text-xs font-medium hover:bg-gray-300 transition-colors shrink-0">取消</button>
           </div>
 
           <button 
             @click="isRecording ? stopRecording() : sendMessage()"
             :disabled="(!messageInput.trim() && !isUploading && !isRecording)"
-            class="flex-shrink-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-3 rounded-xl hover:shadow-lg hover:from-blue-600 hover:to-indigo-700 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center aspect-square"
+            class="flex-shrink-0 bg-[#0071e3] text-white p-3 rounded-full hover:bg-[#0077ED] active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center shadow-sm aspect-square"
           >
-            <svg v-if="!isUploading && !isRecording" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+            <svg v-if="!isUploading && !isRecording" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 translate-x-0.5 -translate-y-0.5">
               <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
             </svg>
             <svg v-else-if="isRecording" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">

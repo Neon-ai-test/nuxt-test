@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[#F5F5F7] font-sans selection:bg-blue-500/30">
     <!-- 顶部导航/标题栏 -->
-    <nav class="sticky top-0 z-50 bg-[#F5F5F7]/80 backdrop-blur-xl border-b border-gray-200/50">
+    <!-- <nav class="sticky top-0 z-50 bg-[#F5F5F7]/80 backdrop-blur-xl border-b border-gray-200/50">
       <div class="max-w-[1200px] mx-auto px-6 h-20 flex items-center justify-between">
         <h1 class="text-2xl font-semibold tracking-tight text-[#1D1D1F]">
           NuxtChat
@@ -15,12 +15,12 @@
           </div>
         </div>
       </div>
-    </nav>
+    </nav> -->
 
     <main class="max-w-[1200px] mx-auto px-6 py-12 pb-24">
       
       <!-- 欢迎语 -->
-      <div class="mb-16 text-center md:text-left animate-fade-in-up">
+      <!-- <div class="mb-16 text-center md:text-left animate-fade-in-up">
         <h2 class="text-5xl md:text-7xl font-semibold text-[#1D1D1F] tracking-tight mb-4 leading-tight">
           连接，<br>
           <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-600">
@@ -30,7 +30,7 @@
         <p class="text-xl md:text-2xl text-[#86868B] font-medium max-w-2xl">
           体验极致流畅的实时沟通，简单、纯粹、优雅。
         </p>
-      </div>
+      </div> -->
 
       <!-- Bento Grid 布局 -->
       <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
