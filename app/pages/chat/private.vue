@@ -322,21 +322,35 @@ const recordingTimer = ref(null);
 
 // 开始录音
 const startRecording = async () => {
+  console.log('Attempting to start recording in private chat...');
+  
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    const errorMsg = '您的浏览器不支持录音功能，请确保使用 HTTPS 或 localhost 访问，并使用现代浏览器。';
+    console.error(errorMsg);
+    alert(errorMsg);
+    return;
+  }
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    console.log('Microphone access granted');
+    
     mediaRecorder.value = new MediaRecorder(stream);
     audioChunks.value = [];
     
     mediaRecorder.value.ondataavailable = (event) => {
-      audioChunks.value.push(event.data);
+      if (event.data.size > 0) {
+        audioChunks.value.push(event.data);
+      }
     };
     
     mediaRecorder.value.onstop = () => {
-      // 停止所有轨道
       stream.getTracks().forEach(track => track.stop());
     };
     
     mediaRecorder.value.start();
+    console.log('MediaRecorder started');
+    
     isRecording.value = true;
     recordingTime.value = 0;
     
@@ -347,7 +361,13 @@ const startRecording = async () => {
     
   } catch (err) {
     console.error('无法启动录音:', err);
-    alert('无法访问麦克风，请检查权限设置');
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      alert('无法访问麦克风，请在浏览器设置中允许访问麦克风。');
+    } else if (err.name === 'NotFoundError') {
+      alert('未检测到麦克风设备。');
+    } else {
+      alert(`无法启动录音: ${err.message}`);
+    }
   }
 };
 
