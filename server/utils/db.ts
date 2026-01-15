@@ -17,6 +17,7 @@ const initScript = `
     user_id TEXT UNIQUE NOT NULL,
     nickname TEXT NOT NULL,
     avatar TEXT,
+    password TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   
@@ -39,6 +40,13 @@ const initScript = `
     message_type TEXT DEFAULT 'text',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- 系统配置表
+  CREATE TABLE IF NOT EXISTS system_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
   
   -- 创建索引
   CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room_id);
@@ -51,6 +59,13 @@ const initScript = `
 `;
 
 db.exec(initScript);
+
+// 尝试添加 password 列（如果不存在，用于旧数据迁移）
+try {
+  db.prepare('ALTER TABLE users ADD COLUMN password TEXT').run();
+} catch (error) {
+  // 列可能已存在，忽略错误
+}
 
 // 3. 导出数据库实例供 API 使用
 export const useDb = () => {

@@ -38,11 +38,20 @@
         <!-- 卡片 1: 个人档案 (跨 4 列) -->
         <div class="md:col-span-5 lg:col-span-4 flex flex-col gap-8">
           <div class="bg-white rounded-[2rem] p-8 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.08)] hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.12)] transition-shadow duration-500 border border-gray-100 h-full flex flex-col">
-            <div class="flex items-center gap-3 mb-8">
-              <div class="w-12 h-12 bg-[#F5F5F7] rounded-2xl flex items-center justify-center text-2xl">
-                🆔
+            <div class="flex items-center justify-between mb-8">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-[#F5F5F7] rounded-2xl flex items-center justify-center text-2xl">
+                  🆔
+                </div>
+                <h3 class="text-2xl font-semibold text-[#1D1D1F]">我的名片</h3>
               </div>
-              <h3 class="text-2xl font-semibold text-[#1D1D1F]">我的名片</h3>
+              <button 
+                @click="router.push('/user')"
+                class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                title="账户设置"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              </button>
             </div>
 
             <div class="flex-1 space-y-6">
