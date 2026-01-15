@@ -142,6 +142,31 @@
        </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirm" class="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+       <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm animate-fade-in-up">
+          <div class="flex items-center gap-3 mb-4 text-red-600">
+             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+             <h3 class="text-lg font-bold">确认删除</h3>
+          </div>
+          <p class="text-gray-600 mb-6">
+            <template v-if="deleteType.includes('batch')">
+               确定要删除选中的 {{ deleteType === 'users_batch' ? selectedUserIds.length : (deleteType === 'messages_batch' ? selectedMessageIds.length : selectedRoomIds.length) }} 项数据吗？此操作无法撤销。
+            </template>
+            <template v-else>
+               确定要删除该{{ deleteType === 'user' ? '用户' : (deleteType === 'room' ? '房间及关联消息' : '消息') }}吗？此操作无法撤销。
+            </template>
+          </p>
+          <div class="flex justify-end gap-3">
+             <button @click="showDeleteConfirm = false" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">取消</button>
+             <button @click="confirmDelete" :disabled="isDeleting" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center">
+                <svg v-if="isDeleting" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                {{ isDeleting ? '删除中...' : '确认删除' }}
+             </button>
+          </div>
+       </div>
+    </div>
+
     <!-- Sidebar -->
     <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-lg shrink-0 transition-all duration-300">
       <!-- Logo / Title -->
@@ -168,6 +193,13 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
           <span>聊天记录</span>
         </button>
+        <button
+          @click="currentTab = 'rooms'"
+          :class="['w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-200', currentTab === 'rooms' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800']"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+          <span>房间管理</span>
+        </button>
       </nav>
 
       <!-- Footer / User Info -->
@@ -193,25 +225,31 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 bg-gray-50">
+    <main class="flex-1 flex flex-col h-screen bg-gray-50 overflow-hidden">
       <!-- Top Header -->
-      <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm z-10">
-        <h1 class="text-xl font-bold text-gray-800 tracking-tight">{{ currentTab === 'users' ? '用户管理' : '聊天记录' }}</h1>
+      <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm shrink-0 z-10">
+        <h1 class="text-xl font-bold text-gray-800 tracking-tight">{{ currentTab === 'users' ? '用户管理' : (currentTab === 'chats' ? '聊天记录' : '房间管理') }}</h1>
         <div class="text-sm text-gray-500">
             {{ new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }) }}
         </div>
       </header>
 
       <!-- Scrollable Content Area -->
-      <div class="flex-1 overflow-auto p-8">
+      <div class="flex-1 overflow-hidden p-8 flex flex-col">
         
         <!-- Users Tab -->
-        <div v-if="currentTab === 'users'" class="space-y-6">
-          <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-            <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center">
+        <div v-if="currentTab === 'users'" class="h-full flex flex-col gap-6">
+          <div class="bg-white shadow-sm rounded-xl border border-gray-200 flex flex-col h-full overflow-hidden">
+            <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center shrink-0">
               <div class="flex items-center gap-2">
                   <h2 class="text-lg font-semibold text-gray-900">用户列表</h2>
                   <span class="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">{{ totalUsers }} 位用户</span>
+                  
+                  <!-- Batch Delete Button -->
+                  <button v-if="selectedUserIds.length > 0" @click="promptBatchDeleteUsers" class="ml-4 flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors animate-fade-in">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                     批量删除 ({{ selectedUserIds.length }})
+                  </button>
               </div>
               <div class="relative w-full sm:w-72">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -229,19 +267,23 @@
               </div>
             </div>
             
-            <div class="overflow-x-auto">
+            <div class="flex-1 overflow-auto">
               <table class="min-w-full divide-y divide-gray-100">
-                <thead class="bg-gray-50/50">
+                <thead class="bg-gray-50/50 sticky top-0 z-10">
                   <tr>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">用户信息</th>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">用户标识 (UID)</th>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">注册时间</th>
+                    <th scope="col" class="pl-6 pr-3 py-4 text-left w-10 bg-gray-50/50">
+                      <input type="checkbox" :checked="isAllUsersSelected" @change="toggleAllUsers" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </th>
+                    <th scope="col" class="px-3 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">ID</th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">用户信息</th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">用户标识 (UID)</th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">注册时间</th>
+                    <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">操作</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                   <tr v-if="loadingUsers">
-                    <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500 flex flex-col items-center justify-center gap-2">
+                    <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500 flex flex-col items-center justify-center gap-2">
                         <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -250,10 +292,13 @@
                     </td>
                   </tr>
                   <tr v-else-if="users.length === 0">
-                    <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">暂无用户数据</td>
+                    <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">暂无用户数据</td>
                   </tr>
                   <tr v-for="user in users" :key="user.id" class="hover:bg-blue-50/30 transition-colors duration-150">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">#{{ user.id }}</td>
+                    <td class="pl-6 pr-3 py-4 whitespace-nowrap">
+                      <input type="checkbox" :checked="selectedUserIds.includes(user.id)" @change="toggleUser(user.id)" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </td>
+                    <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">#{{ user.id }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
                       <div class="flex items-center">
                         <div class="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white">
@@ -270,13 +315,18 @@
                          </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(user.created_at) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button @click="promptDeleteUser(user.id)" class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition-colors duration-200">
+                            删除
+                        </button>
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
             
             <!-- Pagination -->
-            <div class="bg-gray-50/50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div class="bg-gray-50/50 px-6 py-4 border-t border-gray-200 flex items-center justify-between shrink-0">
                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
                     <p class="text-sm text-gray-500">
@@ -299,13 +349,19 @@
         </div>
 
         <!-- Chat Logs Tab -->
-        <div v-if="currentTab === 'chats'" class="space-y-6">
-          <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+        <div v-if="currentTab === 'chats'" class="h-full flex flex-col gap-6">
+          <div class="bg-white shadow-sm rounded-xl border border-gray-200 flex flex-col h-full overflow-hidden">
             <!-- Filters -->
-            <div class="p-6 border-b border-gray-100">
+            <div class="p-6 border-b border-gray-100 shrink-0">
               <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <span>消息筛选</span>
                   <span class="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">{{ totalMessages }} 条记录</span>
+                  
+                  <!-- Batch Delete Button -->
+                  <button v-if="selectedMessageIds.length > 0" @click="promptBatchDeleteMessages" class="ml-4 flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors animate-fade-in">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                     批量删除 ({{ selectedMessageIds.length }})
+                  </button>
               </h2>
               <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
@@ -316,13 +372,23 @@
                     <option value="private">私聊房间</option>
                   </select>
                 </div>
-                <div>
-                   <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">房间 ID (精确匹配)</label>
-                   <input v-model="messageFilters.roomId" @input="debouncedFetchMessages" type="text" class="block w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" placeholder="输入房间 ID">
+                <div v-if="messageFilters.roomType !== 'public'">
+                   <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">选择房间</label>
+                   <select v-model="messageFilters.roomId" @change="fetchMessages(true)" class="block w-full pl-3 pr-10 py-2 text-sm border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 rounded-lg bg-gray-50 transition-all">
+                      <option value="">所有房间</option>
+                      <option v-for="room in rooms" :key="room.roomId" :value="room.roomId">
+                        {{ room.name || room.roomId }}
+                      </option>
+                   </select>
                 </div>
                 <div>
-                   <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">用户 ID (精确匹配)</label>
-                   <input v-model="messageFilters.userId" @input="debouncedFetchMessages" type="text" class="block w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" placeholder="输入用户 ID">
+                   <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">选择用户</label>
+                   <select v-model="messageFilters.userId" @change="fetchMessages(true)" class="block w-full pl-3 pr-10 py-2 text-sm border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 rounded-lg bg-gray-50 transition-all">
+                      <option value="">所有用户</option>
+                      <option v-for="u in allUsersForFilter" :key="u.user_id" :value="u.user_id">
+                        {{ u.nickname }} ({{ u.user_id.substring(0,6) }}...)
+                      </option>
+                   </select>
                 </div>
                 <div class="flex items-end">
                   <button @click="resetMessageFilters" class="w-full inline-flex justify-center items-center gap-2 py-2 px-4 border border-gray-200 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all">
@@ -334,19 +400,23 @@
             </div>
 
             <!-- Messages Table -->
-            <div class="overflow-x-auto">
+            <div class="flex-1 overflow-auto">
               <table class="min-w-full divide-y divide-gray-100">
-                <thead class="bg-gray-50/50">
+                <thead class="bg-gray-50/50 sticky top-0 z-10">
                   <tr>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">时间</th>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">房间</th>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-48">用户</th>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">消息内容</th>
+                    <th scope="col" class="pl-6 pr-3 py-4 text-left w-10 bg-gray-50/50">
+                      <input type="checkbox" :checked="isAllMessagesSelected" @change="toggleAllMessages" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </th>
+                    <th scope="col" class="px-3 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-40 bg-gray-50/50">时间</th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-40 bg-gray-50/50">房间</th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-48 bg-gray-50/50">用户</th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">消息内容</th>
+                    <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-24 bg-gray-50/50">操作</th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                   <tr v-if="loadingMessages">
-                    <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500 flex flex-col items-center justify-center gap-2">
+                    <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500 flex flex-col items-center justify-center gap-2">
                         <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -355,10 +425,13 @@
                     </td>
                   </tr>
                   <tr v-else-if="messages.length === 0">
-                    <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">暂无符合条件的消息记录</td>
+                    <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">暂无符合条件的消息记录</td>
                   </tr>
                   <tr v-for="msg in messages" :key="msg.id" class="hover:bg-blue-50/30 transition-colors duration-150">
-                    <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-mono">
+                    <td class="pl-6 pr-3 py-4 whitespace-nowrap">
+                      <input type="checkbox" :checked="selectedMessageIds.includes(msg.id)" @change="toggleMessage(msg.id)" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </td>
+                    <td class="px-3 py-4 whitespace-nowrap text-xs text-gray-500 font-mono">
                       {{ formatDate(msg.created_at) }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -393,13 +466,18 @@
                         </a>
                       </div>
                     </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button @click="promptDeleteMessage(msg.id)" class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition-colors duration-200">
+                            删除
+                        </button>
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
             
              <!-- Pagination -->
-            <div class="bg-gray-50/50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div class="bg-gray-50/50 px-6 py-4 border-t border-gray-200 flex items-center justify-between shrink-0">
                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
                     <p class="text-sm text-gray-500">
@@ -412,6 +490,90 @@
                         上一页
                       </button>
                       <button @click="messagePage * 20 < totalMessages && (messagePage++, fetchMessages())" :disabled="messagePage * 20 >= totalMessages" class="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        下一页
+                      </button>
+                    </nav>
+                  </div>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rooms Management Tab -->
+        <div v-if="currentTab === 'rooms'" class="h-full flex flex-col gap-6">
+          <div class="bg-white shadow-sm rounded-xl border border-gray-200 flex flex-col h-full overflow-hidden">
+             <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                  <h2 class="text-lg font-semibold text-gray-900">私密房间列表</h2>
+                  <span class="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">{{ totalAdminRooms }} 个房间</span>
+                  
+                  <!-- Batch Delete Button -->
+                  <button v-if="selectedRoomIds.length > 0" @click="promptBatchDeleteRooms" class="ml-4 flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors animate-fade-in">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                     批量删除 ({{ selectedRoomIds.length }})
+                  </button>
+                </div>
+             </div>
+
+             <div class="flex-1 overflow-auto">
+               <table class="min-w-full divide-y divide-gray-100">
+                 <thead class="bg-gray-50/50 sticky top-0 z-10">
+                   <tr>
+                     <th scope="col" class="pl-6 pr-3 py-4 text-left w-10 bg-gray-50/50">
+                       <input type="checkbox" :checked="isAllRoomsSelected" @change="toggleAllRooms" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                     </th>
+                     <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">创建时间</th>
+                     <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">房间ID</th>
+                     <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">房间名称</th>
+                     <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">创建者ID</th>
+                     <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">操作</th>
+                   </tr>
+                 </thead>
+                 <tbody class="bg-white divide-y divide-gray-100">
+                    <tr v-if="loadingAdminRooms">
+                      <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500 flex flex-col items-center justify-center gap-2">
+                        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        加载中...
+                      </td>
+                    </tr>
+                    <tr v-else-if="adminRooms.length === 0">
+                      <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">暂无私密房间</td>
+                    </tr>
+                    <tr v-for="room in adminRooms" :key="room.id" class="hover:bg-blue-50/30 transition-colors duration-150">
+                      <td class="pl-6 pr-3 py-4 whitespace-nowrap">
+                        <input type="checkbox" :checked="selectedRoomIds.includes(room.room_id)" @change="toggleRoom(room.room_id)" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ formatDate(room.created_at) }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ room.room_id }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ room.name }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ room.created_by }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button @click="promptDeleteRoom(room.room_id)" class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition-colors duration-200">
+                            删除
+                        </button>
+                      </td>
+                    </tr>
+                 </tbody>
+               </table>
+             </div>
+
+             <!-- Pagination -->
+             <div class="bg-gray-50/50 px-6 py-4 border-t border-gray-200 flex items-center justify-between shrink-0">
+               <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p class="text-sm text-gray-500">
+                      显示第 <span class="font-medium text-gray-900">{{ (adminRoomsPage - 1) * 20 + 1 }}</span> 到 <span class="font-medium text-gray-900">{{ Math.min(adminRoomsPage * 20, totalAdminRooms) }}</span> 条，共 <span class="font-medium text-gray-900">{{ totalAdminRooms }}</span> 条
+                    </p>
+                  </div>
+                  <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button @click="adminRoomsPage > 1 && (adminRoomsPage--, fetchAdminRooms())" :disabled="adminRoomsPage === 1" class="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        上一页
+                      </button>
+                      <button @click="adminRoomsPage * 20 < totalAdminRooms && (adminRoomsPage++, fetchAdminRooms())" :disabled="adminRoomsPage * 20 >= totalAdminRooms" class="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                         下一页
                       </button>
                     </nav>
@@ -551,7 +713,7 @@ const handleChangePassword = async () => {
 };
 
 
-const currentTab = ref('users'); // 'users' | 'chats'
+const currentTab = ref('users'); // 'users' | 'chats' | 'rooms'
 
 // Utility: Debounce function
 const debounce = (fn, delay) => {
@@ -568,6 +730,7 @@ const totalUsers = ref(0);
 const userPage = ref(1);
 const userSearch = ref('');
 const loadingUsers = ref(false);
+const allUsersForFilter = ref([]); // For dropdowns
 
 const fetchUsers = async () => {
   loadingUsers.value = true;
@@ -588,6 +751,18 @@ const fetchUsers = async () => {
   }
 };
 
+const fetchAllUsersForFilter = async () => {
+  try {
+    // Fetch a larger list for dropdowns, or implement a specific API
+    const { data } = await $fetch('/api/admin/users', {
+      params: { limit: 100 } 
+    });
+    allUsersForFilter.value = data;
+  } catch (e) {
+    console.error(e);
+  }
+};
+
 const debouncedFetchUsers = debounce(() => {
   userPage.value = 1;
   fetchUsers();
@@ -598,11 +773,23 @@ const messages = ref([]);
 const totalMessages = ref(0);
 const messagePage = ref(1);
 const loadingMessages = ref(false);
+const rooms = ref([]); // For room dropdown
 const messageFilters = ref({
   roomType: '', // '' | 'public' | 'private'
   roomId: '',
   userId: ''
 });
+
+const fetchRooms = async () => {
+  try {
+    const res = await $fetch('/api/chat/rooms');
+    if (res.success) {
+      rooms.value = res.data;
+    }
+  } catch (e) {
+    console.error('Failed to fetch rooms', e);
+  }
+};
 
 const fetchMessages = async (resetPage = false) => {
   if (resetPage) messagePage.value = 1;
@@ -633,6 +820,222 @@ const resetMessageFilters = () => {
   fetchMessages(true);
 };
 
+// --- Rooms Logic ---
+const adminRooms = ref([]);
+const totalAdminRooms = ref(0);
+const adminRoomsPage = ref(1);
+const loadingAdminRooms = ref(false);
+
+const fetchAdminRooms = async () => {
+  loadingAdminRooms.value = true;
+  try {
+    const { data, total } = await $fetch('/api/admin/rooms', {
+      params: {
+        limit: 20,
+        offset: (adminRoomsPage.value - 1) * 20
+      }
+    });
+    adminRooms.value = data;
+    totalAdminRooms.value = total;
+  } catch (e) {
+    console.error('Failed to fetch admin rooms', e);
+  } finally {
+    loadingAdminRooms.value = false;
+  }
+};
+
+// --- Delete Logic ---
+const showDeleteConfirm = ref(false);
+const deleteTargetId = ref(null);
+const deleteType = ref(''); // 'user' | 'message' | 'room' | 'users_batch' | 'messages_batch' | 'rooms_batch'
+const isDeleting = ref(false);
+
+// --- Batch Selection Logic ---
+const selectedUserIds = ref([]);
+const selectedMessageIds = ref([]);
+const selectedRoomIds = ref([]);
+
+// Users Batch
+const isAllUsersSelected = computed(() => {
+  return users.value.length > 0 && users.value.every(u => selectedUserIds.value.includes(u.id));
+});
+
+const toggleAllUsers = () => {
+  if (isAllUsersSelected.value) {
+    const userIdsOnPage = users.value.map(u => u.id);
+    selectedUserIds.value = selectedUserIds.value.filter(id => !userIdsOnPage.includes(id));
+  } else {
+    const userIdsOnPage = users.value.map(u => u.id);
+    const toAdd = userIdsOnPage.filter(id => !selectedUserIds.value.includes(id));
+    selectedUserIds.value.push(...toAdd);
+  }
+};
+
+const toggleUser = (id) => {
+  const index = selectedUserIds.value.indexOf(id);
+  if (index > -1) {
+    selectedUserIds.value.splice(index, 1);
+  } else {
+    selectedUserIds.value.push(id);
+  }
+};
+
+const promptBatchDeleteUsers = () => {
+  if (selectedUserIds.value.length === 0) return;
+  deleteType.value = 'users_batch';
+  deleteTargetId.value = null;
+  showDeleteConfirm.value = true;
+};
+
+// Messages Batch
+const isAllMessagesSelected = computed(() => {
+  return messages.value.length > 0 && messages.value.every(m => selectedMessageIds.value.includes(m.id));
+});
+
+const toggleAllMessages = () => {
+  if (isAllMessagesSelected.value) {
+    const msgIdsOnPage = messages.value.map(m => m.id);
+    selectedMessageIds.value = selectedMessageIds.value.filter(id => !msgIdsOnPage.includes(id));
+  } else {
+    const msgIdsOnPage = messages.value.map(m => m.id);
+    const toAdd = msgIdsOnPage.filter(id => !selectedMessageIds.value.includes(id));
+    selectedMessageIds.value.push(...toAdd);
+  }
+};
+
+const toggleMessage = (id) => {
+  const index = selectedMessageIds.value.indexOf(id);
+  if (index > -1) {
+    selectedMessageIds.value.splice(index, 1);
+  } else {
+    selectedMessageIds.value.push(id);
+  }
+};
+
+const promptBatchDeleteMessages = () => {
+  if (selectedMessageIds.value.length === 0) return;
+  deleteType.value = 'messages_batch';
+  deleteTargetId.value = null;
+  showDeleteConfirm.value = true;
+};
+
+// Rooms Batch
+const isAllRoomsSelected = computed(() => {
+  return adminRooms.value.length > 0 && adminRooms.value.every(r => selectedRoomIds.value.includes(r.room_id));
+});
+
+const toggleAllRooms = () => {
+  if (isAllRoomsSelected.value) {
+    const roomIdsOnPage = adminRooms.value.map(r => r.room_id);
+    selectedRoomIds.value = selectedRoomIds.value.filter(id => !roomIdsOnPage.includes(id));
+  } else {
+    const roomIdsOnPage = adminRooms.value.map(r => r.room_id);
+    const toAdd = roomIdsOnPage.filter(id => !selectedRoomIds.value.includes(id));
+    selectedRoomIds.value.push(...toAdd);
+  }
+};
+
+const toggleRoom = (id) => {
+  const index = selectedRoomIds.value.indexOf(id);
+  if (index > -1) {
+    selectedRoomIds.value.splice(index, 1);
+  } else {
+    selectedRoomIds.value.push(id);
+  }
+};
+
+const promptBatchDeleteRooms = () => {
+  if (selectedRoomIds.value.length === 0) return;
+  deleteType.value = 'rooms_batch';
+  deleteTargetId.value = null;
+  showDeleteConfirm.value = true;
+};
+
+// Clear selection on page change or tab change
+watch(userPage, () => selectedUserIds.value = []);
+watch(messagePage, () => selectedMessageIds.value = []);
+watch(adminRoomsPage, () => selectedRoomIds.value = []);
+watch(currentTab, () => {
+  selectedUserIds.value = [];
+  selectedMessageIds.value = [];
+  selectedRoomIds.value = [];
+});
+
+
+const promptDeleteUser = (id) => {
+  deleteTargetId.value = id;
+  deleteType.value = 'user';
+  showDeleteConfirm.value = true;
+};
+
+const promptDeleteMessage = (id) => {
+  deleteTargetId.value = id;
+  deleteType.value = 'message';
+  showDeleteConfirm.value = true;
+};
+
+const promptDeleteRoom = (id) => {
+  deleteTargetId.value = id;
+  deleteType.value = 'room';
+  showDeleteConfirm.value = true;
+};
+
+const confirmDelete = async () => {
+  if (!deleteTargetId.value && !deleteType.value.includes('batch')) return;
+
+  isDeleting.value = true;
+  try {
+    if (deleteType.value === 'user') {
+      await $fetch('/api/admin/users', {
+        method: 'DELETE',
+        body: { id: deleteTargetId.value }
+      });
+      // Refresh user list and stats
+      fetchUsers();
+      fetchAllUsersForFilter();
+    } else if (deleteType.value === 'users_batch') {
+      await $fetch('/api/admin/users', {
+        method: 'DELETE',
+        body: { ids: selectedUserIds.value }
+      });
+      selectedUserIds.value = [];
+      fetchUsers();
+      fetchAllUsersForFilter();
+    } else if (deleteType.value === 'message') {
+       await $fetch('/api/admin/messages', {
+        method: 'DELETE',
+        body: { id: deleteTargetId.value }
+      });
+      fetchMessages();
+    } else if (deleteType.value === 'messages_batch') {
+       await $fetch('/api/admin/messages', {
+        method: 'DELETE',
+        body: { ids: selectedMessageIds.value }
+      });
+      selectedMessageIds.value = [];
+      fetchMessages();
+    } else if (deleteType.value === 'room') {
+       await $fetch('/api/admin/rooms', {
+        method: 'DELETE',
+        body: { id: deleteTargetId.value }
+      });
+      fetchAdminRooms();
+    } else if (deleteType.value === 'rooms_batch') {
+       await $fetch('/api/admin/rooms', {
+        method: 'DELETE',
+        body: { ids: selectedRoomIds.value }
+      });
+      selectedRoomIds.value = [];
+      fetchAdminRooms();
+    }
+    showDeleteConfirm.value = false;
+  } catch (e) {
+    alert('删除失败: ' + (e.data?.message || e.message));
+  } finally {
+    isDeleting.value = false;
+  }
+};
+
 // --- Shared ---
 const formatDate = (dateString) => {
   if (!dateString) return '-';
@@ -650,7 +1053,14 @@ const formatDate = (dateString) => {
 watch(currentTab, (newTab) => {
   if (isAuthenticated.value) {
     if (newTab === 'users' && users.value.length === 0) fetchUsers();
-    if (newTab === 'chats' && messages.value.length === 0) fetchMessages();
+    if (newTab === 'chats') {
+       if (messages.value.length === 0) fetchMessages();
+       if (rooms.value.length === 0) fetchRooms();
+       if (allUsersForFilter.value.length === 0) fetchAllUsersForFilter();
+    }
+    if (newTab === 'rooms' && adminRooms.value.length === 0) {
+      fetchAdminRooms();
+    }
   }
 });
 
@@ -658,6 +1068,8 @@ onMounted(() => {
   checkStatus();
   if (isAuthenticated.value) {
     fetchUsers();
+    fetchRooms();
+    fetchAllUsersForFilter();
   }
 });
 </script>
