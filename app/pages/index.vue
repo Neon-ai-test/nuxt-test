@@ -316,7 +316,7 @@ const createPrivateChat = async () => {
       const updatedRooms = [newRoom, ...recentRooms.value.filter(r => r.id !== newRoom.id)].slice(0, 5);
       recentRooms.value = updatedRooms;
       localStorage.setItem('recentRooms', JSON.stringify(updatedRooms));
-      
+      localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
       sessionStorage.setItem('privateRoomId', result.data.roomId);
       router.push('/chat/private');
     } else {
